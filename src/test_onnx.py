@@ -1,6 +1,6 @@
 import onnxruntime
 import torch
-import tqdm
+from tqdm import tqdm
 import os
 import time
 import argparse
@@ -26,7 +26,7 @@ def check_file_exists(file_path):
     return True
 
 def test_onnx_accuracy(onnx_model_path, test_dir, RESCALE_SIZE):
-    testloader = load_test_dataset(test_dir, RESCALE_SIZE)
+    testloader = load_test_dataset(test_dir, RESCALE_SIZE, batch_size=1)
 
     session = onnxruntime.InferenceSession(onnx_model_path)
     total_samples = 0

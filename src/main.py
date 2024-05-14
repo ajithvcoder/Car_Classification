@@ -26,10 +26,10 @@ def parse_arguments():
     parser.add_argument('--task', choices=['train', 'test'], required=True, help="Specify whether to train or test the model")
     parser.add_argument('--train_path', help="Path to the training data")
     parser.add_argument('--test_path', help="Path to the test data")
-    parser.add_argument('--model_name', choices=['custom', 'mobilenetv3'], help="Name of the model")
+    parser.add_argument('--model_name', default="mobilenetv3", choices=['custom', 'mobilenetv3'], help="Name of the model")
     parser.add_argument('--model_weights', help="Path to the model weights")
-    parser.add_argument('--epochs', default=20, help="Number of epochs to train")
-    parser.add_argument('--tflite_model', default=False, help="Generate tflite model or not")
+    parser.add_argument('--epochs', default=20, type=int, help="Number of epochs to train")
+    parser.add_argument('--tflite_model', default=False, type=bool, choices=[True, False], help="Generate tflite model or not")
     parser.add_argument('--output', default="weights", help="Output directory")
     
     args = parser.parse_args()
@@ -122,14 +122,14 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
     return model, losses, best_score
 
 
-def generate_onnx_model(weights_dir):
+def generate_onnx_model(model, weights_dir):
     dummy_input = torch.randn(1, 3, 224, 224)
     input_names = ["input"]
     output_names = ["output"]
 
     # Export the model to ONNX format
     onnx_filename = os.path.join(weights_dir, "model_best.onnx")
-    torch.onnx.export(model, dummy_input, onnx_filename, input_names=input_names, output_names=output_names)
+    torch.onnx.export(model.to("cpu"), dummy_input, onnx_filename, input_names=input_names, output_names=output_names)
     return onnx_filename
 
 if __name__ == "__main__":
@@ -143,32 +143,37 @@ if __name__ == "__main__":
         model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, 7)
         model = model.to(DEVICE)
     elif args.model_name == "custom":
-        if args.epochs <=30:
+        if args.task=="train" and args.epochs <=30:
             print("Note: kindly set it above 30 as its training from scratch")
         model = CustomCNN(num_classes=7)
         model.to(DEVICE)
     
     # Custom model is configured for this input size
     RESCALE_SIZE = 224
-    trainloader, testloader = load_train_dataset(args.train_path, RESCALE_SIZE), load_test_dataset(args.test_path, RESCALE_SIZE)
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay = 1e-5)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-    model, losses_model, accuracy_model = train(trainloader,testloader, model=model, num_epochs=int(args.epochs), optimizer=optimizer, criterion=criterion, weights_dir=args.weights, scheduler=scheduler) # Training loop with 10 epochs
+    if args.task == "train":
+        trainloader, testloader = load_train_dataset(args.train_path, RESCALE_SIZE), load_test_dataset(args.test_path, RESCALE_SIZE)
+        
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay = 1e-5)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+        model, losses_model, accuracy_model = train(trainloader,testloader, model=model, num_epochs=args.epochs, optimizer=optimizer, criterion=criterion, weights_dir=args.output, scheduler=scheduler) # Training loop with 10 epochs
 
-    # train and loss curve tensorboard logs
-    print("Note: You can view the tensorboard logs by : tensorboard --logdir logs/")
+        # train and loss curve tensorboard logs
+        print("Note: You can view the tensorboard logs by : tensorboard --logdir logs/")
 
-    # prints accuracy metrics
-    accuracy_metrics(model, testloader, args.test_path, DEVICE)
+        # prints accuracy metrics
+        accuracy_metrics(model, testloader, args.test_path, DEVICE)
 
-    # generates onnx model
-    onnx_filename = generate_onnx_model(args.weights)
-    print("Generated onnx model at", onnx_filename)
+        # generates onnx model
+        onnx_filename = generate_onnx_model(model, args.output)
+        print("Generated onnx model at", onnx_filename)
+    elif args.task == "test":
+        testloader = load_test_dataset(args.test_path, RESCALE_SIZE)
+        model.load_state_dict(torch.load(args.model_weights))
+        accuracy_metrics(model, testloader, args.test_path, DEVICE)
 
     # generates tflite model
-    if bool(args.tflite_model):
+    if args.tflite_model:
         print("Note: Check if you have installed tensorflow and onnx2tf library to generate and test tflite model")
         import subprocess
 

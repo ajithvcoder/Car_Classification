@@ -56,7 +56,7 @@ def maintainClassBalance(data_dir, dataset):
             dataset.samples.append((image_path, class_index))
     return dataset
 
-def load_train_dataset(trainPath, RESCALE_SIZE):
+def load_train_dataset(trainPath, RESCALE_SIZE, batch_size=32):
     train_transforms = transforms.Compose([
                                     transforms.RandomHorizontalFlip(),
                                     transforms.RandomRotation(degrees=10),
@@ -80,15 +80,15 @@ def load_train_dataset(trainPath, RESCALE_SIZE):
         class_counts[class_names[label]] += 1
     print("Maintaing class balance and loading the dataset")
     print(class_counts)
-    trainloader = DataLoader(train_dataset, batch_size = 32, shuffle=True, num_workers = 2, worker_init_fn=seed_worker)
+    trainloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers = 2, worker_init_fn=seed_worker)
     return trainloader
 
-def load_test_dataset(testPath, RESCALE_SIZE):
+def load_test_dataset(testPath, RESCALE_SIZE, batch_size=32):
     test_transforms = transforms.Compose([transforms.Resize((RESCALE_SIZE, RESCALE_SIZE)),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
     test_dataset = torchvision.datasets.ImageFolder(root=testPath, transform = test_transforms)
-    testloader = DataLoader(test_dataset, batch_size = 32, shuffle=False, num_workers = 2, worker_init_fn=seed_worker)
+    testloader = DataLoader(test_dataset, batch_size = batch_size, shuffle=False, num_workers = 2, worker_init_fn=seed_worker)
     return testloader
 
 

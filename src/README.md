@@ -35,17 +35,17 @@ Usage:
 
 - TRAIN 
 
-        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3"
+        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=1
 
         You can also train with "custom" method
 
 - TEST
 
-        python main.py --task "test" --test_path "data/Cars Dataset/test" --model_weights "weights/best_model.pth"
+        python main.py --task "test" --model_name "mobilenetv3" --test_path "data/Cars Dataset/test" --model_weights "weights/best_model.pth"
 
 - GENERATE TFLITE MODEL ALONG WITH TRAIN
 
-        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --tflite_model True
+        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=1 --tflite_model True
 
 - MANUAL TFLITE Conversion:
 
@@ -53,10 +53,9 @@ Usage:
 
 - ONNX_MODEL_TEST_ACCURACY_AND_INFERENCE_TIME
 
-        python test_onnx.py --onnx_model_path "weights/best_model.onnx" --test_dir "data/Cars Dataset/test"
+        python test_onnx.py --onnx_model_path "weights/model_best.onnx" --test_dir "data/Cars Dataset/test"
 
 - TFLITE_MODEL_TEST_ACCURACY_AND_INFERENCE_TIME
 
-        python test_tfile.py --tfilte_model_path "saved_models/best_model.tflite" --test_dir "data/Cars Dataset/test"
-
+        python test_tflite.py --tflite_model_path "saved_model/model_best_float16.tflite" --test_dir "data/Cars Dataset/test"
 

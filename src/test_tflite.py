@@ -1,4 +1,4 @@
-# Accuracy test for mobilenetv3_onnx_prequant_float16.tflite model
+# Accuracy test for tflite model
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
@@ -27,7 +27,7 @@ def check_file_exists(file_path):
         return False
     return True
 
-def test_tflite_accuracy(tflite_model_path, test_dir, RESCALE_SIZE)
+def test_tflite_accuracy(tflite_model_path, test_dir, RESCALE_SIZE):
     # Load TFLite model
     interpreter = tf.lite.Interpreter(model_path=tflite_model_path)
     interpreter.allocate_tensors()
@@ -71,7 +71,6 @@ def test_tflite_accuracy(tflite_model_path, test_dir, RESCALE_SIZE)
         ground_truth_labels = np.argmax(labels, axis=1)
         correct += np.sum(predicted_labels == ground_truth_labels)
         total += len(images)
-        count += 1
 
     # Calculate accuracy
     accuracy = correct / total
@@ -110,7 +109,7 @@ if __name__ == "__main__":
     RESCALE_SIZE = 224
 
     if check_file_exists(args.tflite_model_path):
-        inference_time = check_inference_time(args.tflite_model_path, RESCALE_SIZE)
+        inference_time = check_inference_time(args.tflite_model_path)
         print(f"Inference time: {inference_time} seconds")
 
     if check_file_exists(args.tflite_model_path) and check_file_exists(args.test_dir):

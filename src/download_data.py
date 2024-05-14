@@ -1,4 +1,4 @@
-import kaggle
+
 import argparse
 import os
 
@@ -15,10 +15,9 @@ import os
 import shutil
 
 def move_kaggle_json(kaggle_json):
-
     # Check the operating system
     if os.name == 'posix':  # Linux/Mac OS
-        dest_dir = os.path.join(os.path.expanduser('~'), '.kaggle')
+        dest_dir = os.path.join('/root', '.kaggle')
     elif os.name == 'nt':   # Windows
         dest_dir = os.path.join(os.environ['USERPROFILE'], '.kaggle')
     else:
@@ -28,7 +27,6 @@ def move_kaggle_json(kaggle_json):
     # Create the destination directory if it doesn't exist
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
-
     # Move the kaggle.json file to the appropriate folder
     shutil.move(kaggle_json, dest_dir)
     print("kaggle.json file moved successfully.")
@@ -38,7 +36,8 @@ def move_kaggle_json(kaggle_json):
 if __name__ == "__main__":
     args = parse_arguments()
     json_file_path = args.json_file
-
-    if move_kaggle_json(json_file_path):    
+    
+    if move_kaggle_json(json_file_path): 
+        import kaggle
         kaggle.api.authenticate()
         kaggle.api.dataset_download_files('kshitij192/cars-image-dataset', path='./data', unzip=True)
