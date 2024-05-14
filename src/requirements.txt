@@ -3,10 +3,10 @@ torchvision
 tqdm
 scikit-learn
 tqdm
-onnx2tf
-onnx_graphsurgeon
-sng4onnx
-onnxsim
 
 # if you are going to convert to tflite uncomment below
 # tensorflow
+# onnx2tf
+# onnx_graphsurgeon
+# sng4onnx
+# onnxsim

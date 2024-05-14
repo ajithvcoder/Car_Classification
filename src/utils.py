@@ -5,7 +5,7 @@ from collections import defaultdict
 import random
 import numpy as np
 import torchvision
-import tqdm 
+from tqdm.autonotebook import tqdm
 import torch 
 import os 
 
@@ -56,35 +56,43 @@ def maintainClassBalance(data_dir, dataset):
             dataset.samples.append((image_path, class_index))
     return dataset
 
-def loadDataset(trainPath, testPath):
-    RESCALE_SIZE = 224
+def load_train_dataset(trainPath, RESCALE_SIZE):
     train_transforms = transforms.Compose([
                                     transforms.RandomHorizontalFlip(),
                                     transforms.RandomRotation(degrees=10),
                                     transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-                                    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0)),
+                                    transforms.RandomResizedCrop(size=(RESCALE_SIZE, RESCALE_SIZE), scale=(0.8, 1.0)),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
-    test_transforms = transforms.Compose([transforms.Resize((RESCALE_SIZE, RESCALE_SIZE)),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
     train_dataset = torchvision.datasets.ImageFolder(root=trainPath, transform = train_transforms)
-    test_dataset = torchvision.datasets.ImageFolder(root=testPath, transform = test_transforms)
+    
+    class_counts = defaultdict(int)
+    class_names=sorted(os.listdir(trainPath))
+    for _, label in train_dataset:
+        class_counts[class_names[label]] += 1
+    print("Default dataset Info")
+    print(class_counts)
     train_dataset = maintainClassBalance(trainPath, train_dataset)
     class_counts = defaultdict(int)
-    class_names=sorted(os.listdir(testPath))
     for _, label in train_dataset:
         class_counts[class_names[label]] += 1
     print("Maintaing class balance and loading the dataset")
     print(class_counts)
     trainloader = DataLoader(train_dataset, batch_size = 32, shuffle=True, num_workers = 2, worker_init_fn=seed_worker)
+    return trainloader
+
+def load_test_dataset(testPath, RESCALE_SIZE):
+    test_transforms = transforms.Compose([transforms.Resize((RESCALE_SIZE, RESCALE_SIZE)),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+    test_dataset = torchvision.datasets.ImageFolder(root=testPath, transform = test_transforms)
     testloader = DataLoader(test_dataset, batch_size = 32, shuffle=False, num_workers = 2, worker_init_fn=seed_worker)
-    return trainloader, testloader
+    return testloader
 
 
-def getValLabels(model, valDataloader, DEVICE):
+def get_val_labels(model, valDataloader, DEVICE):
     # mob_netv3_test = models.mobilenet_v3_small(pretrained=True, quantize=True)
     # mob_netv3_test.classifier[-1] = torch.nn.Linear(mob_netv3.classifier[-1].in_features, 7)
     # mob_netv3_test = mob_netv3.to(DEVICE)
@@ -119,8 +127,8 @@ def getValLabels(model, valDataloader, DEVICE):
     val_labels = np.concatenate(val_labels, axis=0)
     return predicted_labels, val_labels
 
-def accuracyMetrics(model, testLoader, test_data_path):
+def accuracy_metrics(model, testLoader, test_data_path, DEVICE):
     class_names=sorted(os.listdir(test_data_path))
-    test_predicted_labels, test_true_labels = getValLabels(model, testLoader)
+    test_predicted_labels, test_true_labels = get_val_labels(model, testLoader, DEVICE)
     report = classification_report(test_true_labels, test_predicted_labels, target_names=class_names, digits=4)
     print(report)

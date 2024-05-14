@@ -13,6 +13,7 @@ class CustomCNN(nn.Module):
         self.fc1 = nn.Linear(128 * 28 * 28, 512)
         self.dropout = nn.Dropout(p=0.25)
         self.fc2 = nn.Linear(512, num_classes)
+        # Todo check with a softmax layer
     
     def forward(self, x):
         x = self.conv1(x)
@@ -30,5 +31,3 @@ class CustomCNN(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
         return x
-
-

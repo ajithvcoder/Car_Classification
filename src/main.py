@@ -1,24 +1,17 @@
-# Let's load dependencies
-
 import os
 import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import pandas as pd
-import random
-import seaborn as sns
 import torch.nn as nn
-import torch, torchvision
+import torch
 import matplotlib.pyplot as plt
 
 from tqdm.autonotebook import tqdm, trange
 from torchvision import models
 
 from sklearn.metrics import accuracy_score
-from utils import loadDataset, EarlyStopping, accuracyMetrics
+from utils import load_train_dataset, load_test_dataset, EarlyStopping, accuracy_metrics
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from customCNN import CustomCNN
+from custom_cnn import CustomCNN
 import argparse
 
 DEVICE = None
@@ -36,15 +29,17 @@ def parse_arguments():
     parser.add_argument('--model_name', choices=['custom', 'mobilenetv3'], help="Name of the model")
     parser.add_argument('--model_weights', help="Path to the model weights")
     parser.add_argument('--epochs', default=20, help="Number of epochs to train")
+    parser.add_argument('--tflite_model', default=False, help="Generate tflite model or not")
+    parser.add_argument('--output', default="weights", help="Output directory")
     
     args = parser.parse_args()
     
     if args.task == 'train':
-        if not all([args.trainpath, args.testpath, args.modelname]):
-            parser.error("--trainpath, --testpath, and --modelname are required for training")
+        if not all([args.train_path, args.test_path, args.model_name]):
+            parser.error("--train_path, --test_path, and --model_name are required for training")
     elif args.task == 'test':
-        if not all([args.testpath, args.modelweights]):
-            parser.error("--testpath and --modelweights are required for testing")
+        if not all([args.test_path, args.model_weights]):
+            parser.error("--test_path and --model_weights are required for testing")
             
     return args
 
@@ -105,12 +100,8 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
                 early_stopping(epoch_score)
                 scheduler.step(epoch_loss)
 
-
-
             if k == 'val':
               print(f'Epoch: {epoch + 1} of {num_epochs}  Score: {epoch_score}')
-#               if scheduler is not None:
-#                 scheduler.step(epoch_score)
 
             pbar.set_description('{} Loss: {:.4f} Score: {:.4f}'.format(k, epoch_loss, epoch_score))
 
@@ -131,7 +122,7 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
     return model, losses, best_score
 
 
-def generateOnnxModel(weights_dir):
+def generate_onnx_model(weights_dir):
     dummy_input = torch.randn(1, 3, 224, 224)
     input_names = ["input"]
     output_names = ["output"]
@@ -139,6 +130,7 @@ def generateOnnxModel(weights_dir):
     # Export the model to ONNX format
     onnx_filename = os.path.join(weights_dir, "model_best.onnx")
     torch.onnx.export(model, dummy_input, onnx_filename, input_names=input_names, output_names=output_names)
+    return onnx_filename
 
 if __name__ == "__main__":
 
@@ -155,19 +147,30 @@ if __name__ == "__main__":
             print("Note: kindly set it above 30 as its training from scratch")
         model = CustomCNN(num_classes=7)
         model.to(DEVICE)
-
-    trainloader, testloader = loadDataset(args.train_path, args.test_path)
+    
+    # Custom model is configured for this input size
+    RESCALE_SIZE = 224
+    trainloader, testloader = load_train_dataset(args.train_path, RESCALE_SIZE), load_test_dataset(args.test_path, RESCALE_SIZE)
     
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay = 1e-5)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-    model, losses_mob_netv3, accuracy_mob_netv3 = train(trainloader,testloader, model=model, num_epochs=args.epochs, optimizer=optimizer, criterion=criterion, weights_dir="weights", scheduler=scheduler) # Training loop with 10 epochs
+    model, losses_model, accuracy_model = train(trainloader,testloader, model=model, num_epochs=int(args.epochs), optimizer=optimizer, criterion=criterion, weights_dir=args.weights, scheduler=scheduler) # Training loop with 10 epochs
 
     # train and loss curve tensorboard logs
     print("Note: You can view the tensorboard logs by : tensorboard --logdir logs/")
 
     # prints accuracy metrics
-    accuracyMetrics(model, testloader, args.test_path)
+    accuracy_metrics(model, testloader, args.test_path, DEVICE)
 
-    
+    # generates onnx model
+    onnx_filename = generate_onnx_model(args.weights)
+    print("Generated onnx model at", onnx_filename)
 
+    # generates tflite model
+    if bool(args.tflite_model):
+        print("Note: Check if you have installed tensorflow and onnx2tf library to generate and test tflite model")
+        import subprocess
+
+        command = ['onnx2tf', '-i', onnx_filename]
+        subprocess.run(command)
