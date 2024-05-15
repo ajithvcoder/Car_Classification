@@ -13,6 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from custom_cnn import CustomCNN
 import argparse
+from logger import logger
 
 DEVICE = None
 if torch.cuda.is_available():
@@ -56,7 +57,7 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
     pbar = trange(num_epochs, desc="Epoch:")
 
     loaders = {"train": train_loader, "val": val_loader}
-
+    logger.info(f"### Training Started ###")
     for epoch in pbar:
 
         for k, dataloader in loaders.items():
@@ -92,11 +93,13 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
             losses[k].append(epoch_loss)
 
             if k == "train":
-                writer.add_scalar('Loss/train', epoch_loss, epoch)
-                writer.add_scalar('Accuracy/train', epoch_score, epoch)
+                writer.add_scalar('Loss/train', epoch_loss, epoch+1)
+                writer.add_scalar('Accuracy/train', epoch_score, epoch+1)
+                logger.info(f"Epoch {epoch+1}: Train Loss: {epoch_loss}, Train Accuracy: {epoch_score}")
             if k == "val":
-                writer.add_scalar('Loss/validation', epoch_loss, epoch)
-                writer.add_scalar('Accuracy/validation', epoch_score, epoch)
+                writer.add_scalar('Loss/validation', epoch_loss, epoch+1)
+                writer.add_scalar('Accuracy/validation', epoch_score, epoch+1)
+                logger.info(f"Epoch {epoch}: Val Loss: {epoch_loss}, Val Accuracy: {epoch_score}")
                 early_stopping(epoch_score)
                 scheduler.step(epoch_loss)
 
@@ -114,11 +117,14 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
                torch.save(model.state_dict(), os.path.join(weights_dir, "best_model.pth"))
 
         if early_stopping.early_stop:
+            logger.info("Early stopping")
             print("Early stopping")
             break
 
     print(f'Best score: {best_score}\nEpoch {best_epoch} of {num_epochs}')
     model.load_state_dict(best_model_wts)
+    writer.close()
+    logger.info(f"### Training Ended ###")
     return model, losses, best_score
 
 
@@ -142,11 +148,13 @@ if __name__ == "__main__":
         model = models.mobilenet_v3_small(pretrained=True, quantize=True)
         model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, 7)
         model = model.to(DEVICE)
+        logger.info("Initalized Model - ", args.model_name)
     elif args.model_name == "custom":
         if args.task=="train" and args.epochs <=30:
             print("Note: kindly set it above 30 as its training from scratch")
         model = CustomCNN(num_classes=7)
         model.to(DEVICE)
+        logger.info("Initalized Model - ", args.model_name)
     
     # Custom model is configured for this input size
     RESCALE_SIZE = 224
@@ -167,7 +175,9 @@ if __name__ == "__main__":
         # generates onnx model
         onnx_filename = generate_onnx_model(model, args.output)
         print("Generated onnx model at", onnx_filename)
+        logger.info("Generated onnx model at", onnx_filename)
     elif args.task == "test":
+        logger.info(f"### Testing Started ###")
         testloader = load_test_dataset(args.test_path, RESCALE_SIZE)
         model.load_state_dict(torch.load(args.model_weights))
         accuracy_metrics(model, testloader, args.test_path, DEVICE)
@@ -179,3 +189,4 @@ if __name__ == "__main__":
 
         command = ['onnx2tf', '-i', onnx_filename]
         subprocess.run(command)
+        logger.info("TFLITE file generated in saved_models dir")

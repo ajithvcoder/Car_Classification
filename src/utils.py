@@ -7,7 +7,8 @@ import numpy as np
 import torchvision
 from tqdm.autonotebook import tqdm
 import torch 
-import os 
+import logger
+import os
 
 def seed_worker(worker_id):
     np.random.seed(42)
@@ -74,12 +75,16 @@ def load_train_dataset(trainPath, RESCALE_SIZE, batch_size=32):
         class_counts[class_names[label]] += 1
     print("Default dataset Info")
     print(class_counts)
+    logger.info("Default dataset Info")
+    logger.info(class_counts)
     train_dataset = maintainClassBalance(trainPath, train_dataset)
     class_counts = defaultdict(int)
     for _, label in train_dataset:
         class_counts[class_names[label]] += 1
     print("Maintaing class balance and loading the dataset")
     print(class_counts)
+    logger.info("Maintaing class balance and loading the dataset")
+    logger.info(class_counts)
     trainloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers = 2, worker_init_fn=seed_worker)
     return trainloader
 
@@ -122,6 +127,7 @@ def get_val_labels(model, valDataloader, DEVICE):
         val_labels.append(y_batch.cpu().numpy())
     epoch_score = accuracy_score(epoch_preds, epoch_batches)
     print("Evaluation score:", epoch_score)
+    logger.info("Evaluation score:", epoch_score)
     # Concatenate all the batches of predicted labels into a single numpy array
     predicted_labels = np.concatenate(predicted_labels, axis=0)
     val_labels = np.concatenate(val_labels, axis=0)
@@ -132,3 +138,4 @@ def accuracy_metrics(model, testLoader, test_data_path, DEVICE):
     test_predicted_labels, test_true_labels = get_val_labels(model, testLoader, DEVICE)
     report = classification_report(test_true_labels, test_predicted_labels, target_names=class_names, digits=4)
     print(report)
+    logger.info(f"{report}")
