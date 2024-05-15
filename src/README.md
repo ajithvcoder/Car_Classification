@@ -1,5 +1,9 @@
 ### Car Classification Model
 
+Kaggle Notebook : Available [here](./20240515-assignment-carclassification.ipynb)
+
+Pretrained weights : Available [here](https://drive.google.com/file/d/11bGMM4WQkxoR30tCGGqpd2rvmU2xZdqh/view?usp=sharing)
+
 Installation:
 
 - GENERAL ONNX MODEL
@@ -35,7 +39,7 @@ Usage:
 
 - TRAIN 
 
-        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=1
+        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=20
 
         You can also train with "custom" method
 
@@ -45,7 +49,7 @@ Usage:
 
 - GENERATE TFLITE MODEL ALONG WITH TRAIN
 
-        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=1 --tflite_model True
+        python main.py --task "train" --train_path "data/Cars Dataset/train" --test_path "data/Cars Dataset/test" --model_name "mobilenetv3" --epochs=20 --tflite_model True
 
 - MANUAL TFLITE Conversion:
 

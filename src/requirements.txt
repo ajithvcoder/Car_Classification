@@ -4,6 +4,7 @@ torchvision
 tqdm
 scikit-learn
 tqdm
+onnxruntime
 
 # if you are going to convert to tflite uncomment below
 # tensorflow

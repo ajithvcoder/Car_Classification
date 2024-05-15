@@ -9,3 +9,4 @@ onnx2tf
 onnx_graphsurgeon
 sng4onnx
 onnxsim
+onnxruntime
