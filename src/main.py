@@ -99,7 +99,7 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
             if k == "val":
                 writer.add_scalar('Loss/validation', epoch_loss, epoch+1)
                 writer.add_scalar('Accuracy/validation', epoch_score, epoch+1)
-                logger.info(f"Epoch {epoch}: Val Loss: {epoch_loss}, Val Accuracy: {epoch_score}")
+                logger.info(f"Epoch {epoch+1}: Val Loss: {epoch_loss}, Val Accuracy: {epoch_score}")
                 early_stopping(epoch_score)
                 scheduler.step(epoch_loss)
 
