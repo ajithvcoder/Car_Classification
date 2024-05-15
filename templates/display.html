@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Classification Result</title>
+</head>
+<body>
+    <h1>Result</h1>
+    {% if result.error %}
+    <p>Error: {{ result.error }}</p>
+    {% else %}
+    <p>Class: {{ result.class }}</p>
+    <p>Inference Time: {{ result.process_time }}</p>
+    {% endif %}
+    <a href="/">Try another image</a>
+</body>
+</html>
