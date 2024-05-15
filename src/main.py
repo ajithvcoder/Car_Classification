@@ -103,9 +103,6 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
                 early_stopping(epoch_score)
                 scheduler.step(epoch_loss)
 
-            if k == 'val':
-              print(f'Epoch: {epoch + 1} of {num_epochs}  Score: {epoch_score}')
-
             pbar.set_description('{} Loss: {:.4f} Score: {:.4f}'.format(k, epoch_loss, epoch_score))
 
             if k == 'val' and epoch_score > best_score:
@@ -118,10 +115,9 @@ def train(train_loader, val_loader, model, num_epochs, optimizer, criterion, wei
 
         if early_stopping.early_stop:
             logger.info("Early stopping")
-            print("Early stopping")
             break
 
-    print(f'Best score: {best_score}\nEpoch {best_epoch} of {num_epochs}')
+    logger.info(f'Best score: {best_score}\nEpoch {best_epoch} of {num_epochs}')
     model.load_state_dict(best_model_wts)
     writer.close()
     logger.info(f"### Training Ended ###")
@@ -144,17 +140,17 @@ if __name__ == "__main__":
 
     model = None
     if args.model_name == "mobilenetv3":
-        print("Loading with pretrained weights for better performance")
-        model = models.mobilenet_v3_small(pretrained=True, quantize=True)
+        model = models.mobilenet_v3_small(weights=True, quantize=True)
         model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, 7)
         model = model.to(DEVICE)
-        logger.info("Initalized Model - ", args.model_name)
+        logger.info(f"Initalized Model - {args.model_name}")
+        logger.info("Loading with pretrained weights for better performance")
     elif args.model_name == "custom":
         if args.task=="train" and args.epochs <=30:
-            print("Note: kindly set it above 30 as its training from scratch")
+            logger.info("Note: kindly set it above 30 as its training from scratch")
         model = CustomCNN(num_classes=7)
         model.to(DEVICE)
-        logger.info("Initalized Model - ", args.model_name)
+        logger.info(f"Initalized Model - {args.model_name}")
     
     # Custom model is configured for this input size
     RESCALE_SIZE = 224
@@ -167,15 +163,14 @@ if __name__ == "__main__":
         model, losses_model, accuracy_model = train(trainloader,testloader, model=model, num_epochs=args.epochs, optimizer=optimizer, criterion=criterion, weights_dir=args.output, scheduler=scheduler) # Training loop with 10 epochs
 
         # train and loss curve tensorboard logs
-        print("Note: You can view the tensorboard logs by : tensorboard --logdir logs/")
+        logger.info("Note: You can view the tensorboard logs by : tensorboard --logdir logs/")
 
         # prints accuracy metrics
         accuracy_metrics(model, testloader, args.test_path, DEVICE)
 
         # generates onnx model
         onnx_filename = generate_onnx_model(model, args.output)
-        print("Generated onnx model at", onnx_filename)
-        logger.info("Generated onnx model at", onnx_filename)
+        logger.info(f"Generated onnx model at {onnx_filename}")
     elif args.task == "test":
         logger.info(f"### Testing Started ###")
         testloader = load_test_dataset(args.test_path, RESCALE_SIZE)
@@ -184,7 +179,7 @@ if __name__ == "__main__":
 
     # generates tflite model
     if args.tflite_model:
-        print("Note: Check if you have installed tensorflow and onnx2tf library to generate and test tflite model")
+        logger.info("Note: Check if you have installed tensorflow and onnx2tf library to generate and test tflite model")
         import subprocess
 
         command = ['onnx2tf', '-i', onnx_filename]

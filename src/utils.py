@@ -7,7 +7,7 @@ import numpy as np
 import torchvision
 from tqdm.autonotebook import tqdm
 import torch 
-import logger
+from logger import logger
 import os
 
 def seed_worker(worker_id):
@@ -30,7 +30,7 @@ class EarlyStopping:
         elif score < self.best_score + self.delta:
             self.counter += 1
             if self.verbose:
-                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+                logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -73,18 +73,14 @@ def load_train_dataset(trainPath, RESCALE_SIZE, batch_size=32):
     class_names=sorted(os.listdir(trainPath))
     for _, label in train_dataset:
         class_counts[class_names[label]] += 1
-    print("Default dataset Info")
-    print(class_counts)
     logger.info("Default dataset Info")
-    logger.info(class_counts)
+    logger.info(f"{class_counts}")
     train_dataset = maintainClassBalance(trainPath, train_dataset)
     class_counts = defaultdict(int)
     for _, label in train_dataset:
         class_counts[class_names[label]] += 1
-    print("Maintaing class balance and loading the dataset")
-    print(class_counts)
     logger.info("Maintaing class balance and loading the dataset")
-    logger.info(class_counts)
+    logger.info(f"{class_counts}")
     trainloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers = 2, worker_init_fn=seed_worker)
     return trainloader
 
@@ -126,8 +122,7 @@ def get_val_labels(model, valDataloader, DEVICE):
         predicted_labels.append(preds_1.cpu().numpy())  # Convert tensor to numpy array and move it to CPU
         val_labels.append(y_batch.cpu().numpy())
     epoch_score = accuracy_score(epoch_preds, epoch_batches)
-    print("Evaluation score:", epoch_score)
-    logger.info("Evaluation score:", epoch_score)
+    logger.info(f"Evaluation score: {epoch_score}")
     # Concatenate all the batches of predicted labels into a single numpy array
     predicted_labels = np.concatenate(predicted_labels, axis=0)
     val_labels = np.concatenate(val_labels, axis=0)
@@ -137,5 +132,4 @@ def accuracy_metrics(model, testLoader, test_data_path, DEVICE):
     class_names=sorted(os.listdir(test_data_path))
     test_predicted_labels, test_true_labels = get_val_labels(model, testLoader, DEVICE)
     report = classification_report(test_true_labels, test_predicted_labels, target_names=class_names, digits=4)
-    print(report)
     logger.info(f"{report}")
